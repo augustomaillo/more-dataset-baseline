@@ -1,35 +1,35 @@
-from keras.models import Model
-from keras.layers import Lambda, Input, BatchNormalization
-import keras.backend as K
+# from keras.models import Model
+# from keras.layers import Lambda, Input, BatchNormalization
+# import keras.backend as K
 import tensorflow as tf
 
 
-def triplet_net(feat_model, identity_model, img_shape):
+# def triplet_net(feat_model, identity_model, img_shape):
     
-  IMAGE_H, IMAGE_W = img_shape 
+#   IMAGE_H, IMAGE_W = img_shape 
 
-  input_camA = Input(shape=(IMAGE_H, IMAGE_W, 3))
-  input_camB = Input(shape=(IMAGE_H, IMAGE_W, 3))
+#   input_camA = Input(shape=(IMAGE_H, IMAGE_W, 3))
+#   input_camB = Input(shape=(IMAGE_H, IMAGE_W, 3))
 
-  feat_A = feat_model(input_camA)
-  feat_B = feat_model(input_camB)
+#   feat_A = feat_model(input_camA)
+#   feat_B = feat_model(input_camB)
 
-  out_cls_A= identity_model(feat_A)
-  out_cls_B= identity_model(feat_B)
+#   out_cls_A= identity_model(feat_A)
+#   out_cls_B= identity_model(feat_B)
 
-#   feat_A = Lambda(lambda  x: K.l2_normalize(x,axis=1))(feat_A)
-#   feat_B = Lambda(lambda  x: K.l2_normalize(x,axis=1))(feat_B)
+# #   feat_A = Lambda(lambda  x: K.l2_normalize(x,axis=1))(feat_A)
+# #   feat_B = Lambda(lambda  x: K.l2_normalize(x,axis=1))(feat_B)
     
-#   ex_clsA = Lambda(lambda v: tf.expand_dims(v, axis=0), name='expandA')(out_cls_A)
-#   ex_clsB = Lambda(lambda v: tf.expand_dims(v, axis=0), name='expandB')(out_cls_B)
+# #   ex_clsA = Lambda(lambda v: tf.expand_dims(v, axis=0), name='expandA')(out_cls_A)
+# #   ex_clsB = Lambda(lambda v: tf.expand_dims(v, axis=0), name='expandB')(out_cls_B)
     
-  feat =  Lambda(lambda v: K.stack(v, axis=0), name='stacked_feats')([feat_A, feat_B])
+#   feat =  Lambda(lambda v: K.stack(v, axis=0), name='stacked_feats')([feat_A, feat_B])
     
-  cls = Lambda(lambda v: K.stack(v, axis=1), name='stacked_cls')([out_cls_A, out_cls_B])
+#   cls = Lambda(lambda v: K.stack(v, axis=1), name='stacked_cls')([out_cls_A, out_cls_B])
 
-  tri_model = Model([input_camA, input_camB], [feat,cls], name='triplet_siamese') 
+#   tri_model = Model([input_camA, input_camB], [feat,cls], name='triplet_siamese') 
     
-  return tri_model
+#   return tri_model
 
 def triplet_loss(margin= 0.3):
     def squared_dist(A, B):

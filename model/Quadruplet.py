@@ -1,6 +1,6 @@
-from keras.models import Model
-from keras.layers import Lambda, Input, BatchNormalization
-import keras.backend as K
+# from keras.models import Model
+# from keras.layers import Lambda, Input, BatchNormalization
+# import keras.backend as K
 import tensorflow as tf
 
 
@@ -39,8 +39,8 @@ import tensorflow as tf
 #   return quad_model
 
 
-def quadruplet_accuracy(y_true, y_pred):
-    return K.mean(y_pred[:,0,0] < y_pred[:,1,0]) # distância entre o par de positivas é menor que o entre o par de amostras negativas.
+# def quadruplet_accuracy(y_true, y_pred):
+    # return K.mean(y_pred[:,0,0] < y_pred[:,1,0]) # distância entre o par de positivas é menor que o entre o par de amostras negativas.
 
 
 def quadruplet_loss(margin= 0.3):
