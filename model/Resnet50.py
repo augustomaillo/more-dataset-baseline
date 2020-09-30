@@ -9,7 +9,6 @@ from keras.utils import np_utils
 
 def classification_net(ident_num, bias = True):
   model = Sequential()
-
   
   model.add(BatchNormalization()) 
   model.add(Dropout(0.5)) 
@@ -29,10 +28,17 @@ def classification_net(ident_num, bias = True):
   return model
 
 def feat_net(img_shape):
+  """Returns a keras Model for feature extract
+
+  Args:
+          img_shape: tuple (h,w)
+
+  Returns:
+          model: Keras model 
+  """  
 
   IMAGE_H, IMAGE_W = img_shape
   input_image = Input(shape=(IMAGE_H, IMAGE_W, 3))
-  # Rede Base
 
   base_model = keras.applications.resnet50.ResNet50(include_top=False,
                     weights='imagenet',
