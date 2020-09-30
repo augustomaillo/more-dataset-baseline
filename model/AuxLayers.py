@@ -124,36 +124,36 @@ def BNNeckForInference(feat_model, img_shape):
   return bnnek_inf
 
 
-def general_net(feat_model, identity_model, img_shape):
-  """Returns a keras Model for training 
-  with classification and metric learning losses
+# def general_net(feat_model, identity_model, img_shape):
+#   """Returns a keras Model for training 
+#   with classification and metric learning losses
 
-  Args:
-          feat_model: keras Model for feature extracting
-          identity_model: keras Model for classification
-          img_shape: tuple specifying (h,w)
+#   Args:
+#           feat_model: keras Model for feature extracting
+#           identity_model: keras Model for classification
+#           img_shape: tuple specifying (h,w)
 
-  Returns:
-          model: Keras model 
-  """  
-  IMAGE_H, IMAGE_W = img_shape 
+#   Returns:
+#           model: Keras model 
+#   """  
+#   IMAGE_H, IMAGE_W = img_shape 
 
-  input_camA = Input(shape=(IMAGE_H, IMAGE_W, 3))
-  input_camB = Input(shape=(IMAGE_H, IMAGE_W, 3))
+#   input_camA = Input(shape=(IMAGE_H, IMAGE_W, 3))
+#   input_camB = Input(shape=(IMAGE_H, IMAGE_W, 3))
 
-  id_input_camA = Input((1,), name='target_input_camA')
-  id_input_camB = Input((1,), name='target_input_camB')
+#   id_input_camA = Input((1,), name='target_input_camA')
+#   id_input_camB = Input((1,), name='target_input_camB')
 
-  feat_A = feat_model(input_camA)
-  feat_B = feat_model(input_camB)
+#   feat_A = feat_model(input_camA)
+#   feat_B = feat_model(input_camB)
 
-  out_cls_A= identity_model(feat_A)
-  out_cls_B= identity_model(feat_B)
+#   out_cls_A= identity_model(feat_A)
+#   out_cls_B= identity_model(feat_B)
     
-  feat =  Lambda(lambda v: K.stack(v, axis=0), name='stacked_feats')([feat_A, feat_B])
+#   feat =  Lambda(lambda v: K.stack(v, axis=0), name='stacked_feats')([feat_A, feat_B])
     
-  cls = Lambda(lambda v: K.stack(v, axis=1), name='stacked_cls')([out_cls_A, out_cls_B])
+#   cls = Lambda(lambda v: K.stack(v, axis=1), name='stacked_cls')([out_cls_A, out_cls_B])
 
-  general_model = Model([input_camA, input_camB], [feat,cls], name='general_model') 
+#   general_model = Model([input_camA, input_camB], [feat,cls], name='general_model') 
     
-  return general_model
+#   return general_model

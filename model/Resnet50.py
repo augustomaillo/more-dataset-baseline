@@ -7,25 +7,22 @@ import keras.backend as K
 from keras.applications.resnet50 import preprocess_input
 from keras.utils import np_utils
 
-def classification_net(ident_num, bias = True):
-  model = Sequential()
+# def classification_net(ident_num, bias = True):
+#   model = Sequential()
   
-  model.add(BatchNormalization()) 
-  model.add(Dropout(0.5)) 
+#   model.add(BatchNormalization()) 
+#   model.add(Dropout(0.5)) 
 
-  model.add(Dense(256, activation='relu'))
-  model.add(BatchNormalization()) 
-  model.add(Dropout(0.5)) 
+#   model.add(Dense(256, activation='relu'))
+#   model.add(BatchNormalization()) 
+#   model.add(Dropout(0.5)) 
 
-  model.add(Dense(128, activation='relu'))
-  model.add(BatchNormalization()) 
-  model.add(Dropout(0.5)) 
+#   model.add(Dense(128, activation='relu'))
+#   model.add(BatchNormalization()) 
+#   model.add(Dropout(0.5)) 
   
-  model.add(Dense(ident_num, activation='softmax', use_bias = bias))
-
-
-
-  return model
+#   model.add(Dense(ident_num, activation='softmax', use_bias = bias))
+#   return model
 
 def feat_net(img_shape):
   """Returns a keras Model for feature extract
