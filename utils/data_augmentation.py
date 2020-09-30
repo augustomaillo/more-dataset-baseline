@@ -7,7 +7,7 @@ nd = 32
 an = 15
 t_perc = 0.2
 
-# aplicando translação
+# applying translation
 def translate(nimg):
   img = np.asarray(nimg)
   
@@ -22,7 +22,7 @@ def translate(nimg):
   out_img = Image.fromarray(img)
   return out_img
 
-# aplicando rotações
+# applying rotation
 def rotate(nimg):
   
   img = np.asarray(nimg)
@@ -50,7 +50,7 @@ def rotate(nimg):
   
   return out_img
 
-# horizontal flip na imagem e na bbox correspondente
+# applying horizontal flip to img and bbox
 def h_flip(img):
   img = np.asarray(img)
   img =  cv2.flip(img, 1)
@@ -58,7 +58,7 @@ def h_flip(img):
   return out_img
 
 
-# variando a iluminação usando hsv da imagem
+# changing brightness by hsv
 def hue_transform(img):
   
   img = np.asarray(img)
@@ -71,9 +71,8 @@ def hue_transform(img):
   
   return img
 
-
+# applying cutout
 def cutout(img, bb_shape= (15,15)):
-  
   img = np.asarray(img)
 
   h,w,_ = img.shape
@@ -94,7 +93,7 @@ def cutout(img, bb_shape= (15,15)):
   
   return img
 
-
+# applying zooming
 def zooming(img, bb_shape= (15,5)):
   
   img = np.asarray(img)
@@ -120,43 +119,34 @@ def zooming(img, bb_shape= (15,5)):
   return img
 
 def augment(nimg,methods):
-
   #cutout
   if 'cutout' in methods:
     if np.random.uniform() > 0.5 :
       nimg  = cutout(nimg)
-      # print('cutout: ', type(nimg))
+
   # brightness  
   if 'brightness' in methods:
     if np.random.uniform() > 0.5 :
       nimg = hue_transform(nimg)
-      # print('brightness: ', type(nimg))
 
   # horizontal flip  
   if 'horizontal_flip' in methods:
     if np.random.uniform() > 0.5:
       nimg = h_flip(nimg)    
-      # print('horizontal_flip: ', type(nimg))
-  
+
   # zooming  
   if 'zooming' in methods:
     if np.random.uniform() > 0.5:
       nimg = zooming(nimg)    
-      # print('zooming: ', type(nimg))
-
 
   # zooming  
   if 'rotate' in methods:
     if np.random.uniform() > 0.5:
       nimg = rotate(nimg) 
-      # print('rotate: ', type(nimg))
-
 
   # zooming  
   if 'translate' in methods:
     if np.random.uniform() > 0.5:
       nimg = translate(nimg)  
-      # print('translate: ', type(nimg))
-
 
   return nimg
