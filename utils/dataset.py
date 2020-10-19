@@ -2,7 +2,7 @@ import h5py
 import numpy as np
 from PIL import Image
 
-class MoRe_Dataset():
+class Dataset():
     def __init__(self, h5_file, to_bgr):
         """Constructor for MoRe_Dataset class
 
