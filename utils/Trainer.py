@@ -1,9 +1,8 @@
-from utils.dataset import Dataset
-from utils.generator import classification_generator, triplet_generator, quadruplet_generator
-from model.Quadruplet import quadruplet_accuracy, quadruplet_loss
-from model.Triplet import triplet_loss
-from utils.test_metrics import generate_cmc_curve
-
+from utils.dataset import Dataset, BPRDataset, JoiningDatasets
+# from utils.generator import classification_generator, triplet_generator, quadruplet_generator
+from utils.NewGenerator import general_generator, general_generator_center, classification_generator
+from utils.test_metrics import generate_cmc_curve, new_generate_cmc_curve
+from tensorflow.keras.applications.resnet import preprocess_input
 from keras.callbacks import LearningRateScheduler, ModelCheckpoint
 from keras import Model
 from keras import optimizers
@@ -11,28 +10,90 @@ import tensorflow as tf
 import os
 from time import time
 from shutil import copyfile
+import numpy as np 
+from PIL import Image
+from multiprocessing.pool import ThreadPool
+from keras.callbacks import Callback
 
-
-class MyCustomCallback(tf.keras.callbacks.Callback):
-  def __init__(self, feat_model, folder, prefix, dataset):
+class TrainProgress(tf.keras.callbacks.Callback):
+  def __init__(self, feat_model, folder, prefix, dataset, image_shape, bn):
+    print('Loading train data on RAM.')
     self._folder = folder
     self._prefix = prefix
     self._dataset = dataset
     self._fm = feat_model
+    self._image_shape = image_shape
+    self._bn = bn
+
+    test_dataA = self._dataset.content_array('camA')[0]
+    test_dataB = self._dataset.content_array('camB')[0]
+    test_identA = self._dataset.content_array('camA')[1]
+    test_identB = self._dataset.content_array('camB')[1]
+    self._camA_set = []
+    self._camB_set = []
+    
+    def process_image(img_name):
+      imgA = dataset.get_image(img_name)
+      imgA = Image.fromarray(imgA)
+      imgA = imgA.resize((image_shape[1], image_shape[0]))
+
+      imgA = np.array(imgA)
+      imgA = preprocess_input(imgA)
+      imgA /= 255
+      return imgA
+
+    processA = ThreadPool(4).map(process_image, test_dataA)
+    for r in processA:
+      self._camA_set.append(r)
+      print(len(self._camA_set),len(test_dataA), end='\r')
+    self._camA_set = np.array(self._camA_set)
+
+    processB = ThreadPool(4).map(process_image, test_dataB)
+    for r in processB:
+      self._camB_set.append(r)
+      print(len(self._camB_set),len(test_dataB), end='\r')
+    self._camB_set = np.array(self._camB_set)
+
+    self.ids_camA = np.array(test_identA)
+    self.ids_camB = np.array(test_identB)
 
   def on_epoch_end(self, epoch, logs=None):
-    
-    if(not os.path.exists(self._folder)):
-        os.mkdir(self_folder)
-        
-    
-    generate_cmc_curve(self._fm,
-                       self._dataset, 
-                       name = os.path.join(self._folder, self._prefix+'_epoch_%d'%epoch) )
+    if (epoch+1)%20 ==0:
+      if(not os.path.exists(self._folder)):
+          os.mkdir(self_folder)
+          
+      
+      new_generate_cmc_curve(
+        self._fm,
+        self._camA_set,
+        self._camB_set,
+        self.ids_camA,
+        self.ids_camB,
+        self._dataset, 
+        name = os.path.join(self._folder, self._prefix+'_epoch_%d'%epoch),
+        image_size = self._image_shape,
+        BN = self._bn
+        )
+
+class TerminateOnBaseline(Callback):
+    """Callback that terminates training when either acc or val_acc reaches a specified baseline
+    """
+    def __init__(self, monitor='acc', baseline=0.9):
+        super(TerminateOnBaseline, self).__init__()
+        self.monitor = monitor
+        self.baseline = baseline
+
+    def on_epoch_end(self, epoch, logs=None):
+        logs = logs or {}
+        acc = logs.get(self.monitor)
+        if acc is not None:
+            if acc >= self.baseline:
+                print('Epoch %d: Reached baseline, terminating training' % (epoch))
+                self.model.stop_training = True
 
 
 def step_decay(epoch):
-  
+  0.000035
   lrate = 0.00035
   if epoch > 40:
     lrate = 0.000035
@@ -42,8 +103,19 @@ def step_decay(epoch):
 
   return lrate
 
+def warmup_lr(epoch):
+  epoch = epoch+1
+  if epoch <= 10:
+    lrate = 3.5e-5*(epoch)
+  elif epoch <= 40:
+    lrate = 3.5e-4
+  elif epoch <= 70:
+    lrate = 3.5e-5
+  elif epoch >70:
+    lrate = 3.5e-6
+  return lrate
+
 def standard_optimizer():
-  # return AdamOptimizer
   return optimizers.Adam(lr=0.00035)
 
 def copy_dataset(dataset):
@@ -55,20 +127,26 @@ def copy_dataset(dataset):
 def del_temp_dataset(dataset):
   os.remove(dataset)
 
-
-def train_classifier(feat_model, model, train_dataset, val_dataset, modelpath, train_flag = True, models_folder='saved_models', epochs = 120, batch_size = 32, img_size = (224,320)):
+def train_classifier(
+      feat_model,
+      model, 
+      train_dataset, # dataset object
+      val_dataset, 
+      modelpath, 
+      train_flag = True, 
+      models_folder='saved_models', 
+      epochs = 120, batch_size = 32, 
+      img_size = (224,320), 
+      label_smoothing = False,
+      wlr = False,
+      BN = False
+    ):
+    
   model.compile(
     optimizer = standard_optimizer(), 
     loss=['categorical_crossentropy'], 
     metrics = ['acc']
     )
-
-  train_data_name = copy_dataset(train_dataset)
-  train_dataset = Dataset(train_data_name)
-
-  val_data_name = copy_dataset(val_dataset)
-  val_dataset = Dataset(val_data_name)
-
 
   modelpath = os.path.join(models_folder, modelpath)
   if( os.path.exists(modelpath)):
@@ -77,42 +155,64 @@ def train_classifier(feat_model, model, train_dataset, val_dataset, modelpath, t
 
   if train_flag:
     checkpoint = ModelCheckpoint(modelpath, monitor='acc', verbose=1, save_best_only=True, mode='max')
-    lrate = LearningRateScheduler(step_decay)
 
-     
-    callbacks_list = [lrate, MyCustomCallback(feat_model, 'curvas', 'cls', val_dataset), checkpoint]
+    if wlr:
+      print('Using warmup lr')
+      lrate = LearningRateScheduler(warmup_lr)
+    else:
+      lrate = LearningRateScheduler(step_decay)
+
+    callbacks_list = [lrate, checkpoint, TerminateOnBaseline(monitor='acc', baseline=1.0)]
 
     cls_gen = classification_generator(
         train_dataset, 
         batch_size = batch_size,
         aug = True,
         img_size = img_size,
-        label_smoothing = True
+        label_smoothing = label_smoothing
       )
-
+    print('8 workers')
     H = model.fit_generator(
                               cls_gen,
-                              steps_per_epoch=int(train_dataset.images_amount()/batch_size), 
+                              steps_per_epoch=int(train_dataset.ident_num()/(batch_size/2)), 
                               epochs=epochs,
-                              callbacks=callbacks_list
+                              callbacks=callbacks_list,
+                              use_multiprocessing=True,
+                              workers=8
                             )
 
-    del_temp_dataset(train_data_name)
-    del_temp_dataset(val_data_name)
 
 
-def train_quadnet(feat_model, model, train_dataset, val_dataset, modelpath, train_flag = True, models_folder='saved_models', epochs = 120, batch_size = 12, img_size = (224,320)):
+
+from model.Quadruplet import quadruplet_accuracy, quadruplet_loss
+
+def train_quadnet(feat_model, 
+  model, 
+  train_dataset, # object
+  modelpath, 
+  train_flag = True, 
+  val_dataset = None,
+   aug = True, 
+   models_folder='saved_models', 
+   epochs = 120, 
+   batch_size = 12, 
+   img_size = (224,320), 
+   label_smoothing = False, 
+   wlr = False,
+   BN = False,
+   CenterLoss = False
+   ):
+
+  losses_list = [quadruplet_loss(),'categorical_crossentropy']
+  if CenterLoss:
+    print('Using CenterLoss')
+    losses_list.append(lambda y_true, y_pred: y_pred)
+    losses_list.append(lambda y_true, y_pred: y_pred)
+
   model.compile(
     optimizer=standard_optimizer(),
-    loss=[quadruplet_loss(),'categorical_crossentropy'], 
-    metrics = [quadruplet_accuracy]
+    loss= losses_list
     )
-
-  train_data_name = copy_dataset(train_dataset)
-  train_dataset = Dataset(train_data_name)
-
-  val_data_name = copy_dataset(val_dataset)
-  val_dataset = Dataset(val_data_name)
 
   modelpath = os.path.join(models_folder, modelpath)
   if( os.path.exists(modelpath)):
@@ -120,51 +220,76 @@ def train_quadnet(feat_model, model, train_dataset, val_dataset, modelpath, trai
     model.load_weights(modelpath)
 
   if train_flag:
-    checkpoint = ModelCheckpoint(modelpath, monitor='val_stacked_dists_quadruplet_accuracy', verbose=1, save_best_only=True, mode='max')
-    lrate = LearningRateScheduler(step_decay)
+    checkpoint = ModelCheckpoint(modelpath, monitor='loss', verbose=1, save_best_only=True, mode='min')
+    if wlr:
+      print('Using warmup lr')
+      lrate = LearningRateScheduler(warmup_lr)
+    else:
+      lrate = LearningRateScheduler(step_decay)
 
-     
-    callbacks_list = [lrate, MyCustomCallback(feat_model, 'curvas', 'quadruplet', val_dataset), checkpoint]
+    # TrainProgress(feat_model, 'curvas', 'quadruplet', train_dataset, img_size, BN)
+    callbacks_list = [lrate, checkpoint]
 
-    quad_gen = quadruplet_generator(
-        feat_model, 
-        train_dataset, 
-        batch_size = batch_size, 
-        img_size = img_size
-      )
 
-    val_quad_gen = quadruplet_generator(
-        feat_model, 
-        val_dataset, 
-        batch_size = batch_size, 
-        img_size = img_size,
-        validation = True,
-        val_ident_num = train_dataset.ident_num(),
-        aug = False
-      )
+
+    if not CenterLoss:
+      quad_gen = general_generator(
+          train_dataset, 
+          batch_size = batch_size, 
+          img_size = img_size,
+          aug = aug,
+          label_smoothing = label_smoothing
+        )
+    else:
+        quad_gen = general_generator_center( 
+          train_dataset, 
+          batch_size = batch_size, 
+          img_size = img_size,
+          aug = aug,
+          label_smoothing = label_smoothing
+        )
 
     H = model.fit_generator(
                               quad_gen,
                               steps_per_epoch=int(train_dataset.ident_num()/batch_size), 
                               epochs=epochs,
                               callbacks=callbacks_list,
-                              validation_data = val_quad_gen,
-                              validation_steps = int(val_dataset.ident_num()/batch_size)
+                              use_multiprocessing=True,
+                              workers = 8
                             )
-    del_temp_dataset(train_data_name)
-    del_temp_dataset(val_data_name)
 
-def train_trinet(feat_model, model, train_dataset, val_dataset, modelpath, train_flag = True, models_folder='saved_models', epochs = 120, batch_size = 4, img_size = (224,320)):
+from model.Triplet import triplet_loss
+
+def train_trinet(
+  feat_model, 
+  model, 
+  train_dataset, 
+  modelpath,
+  val_dataset = None, 
+  train_flag = True, 
+  aug = True, 
+  models_folder='saved_models', 
+  epochs = 120, 
+  batch_size = 4, 
+  img_size = (224,320), 
+  label_smoothing = False, 
+  wlr = False, 
+  BN = False,
+  CenterLoss = False
+  ):
+
+  losses_list = [triplet_loss(),'categorical_crossentropy']
+  if CenterLoss:
+    print('Using CenterLoss')
+    losses_list.append(lambda y_true, y_pred: y_pred)
+    losses_list.append(lambda y_true, y_pred: y_pred)
+
   model.compile(
     optimizer=standard_optimizer(), 
-    loss=[triplet_loss(),'categorical_crossentropy']
+    loss=losses_list
     )
 
-  train_data_name = copy_dataset(train_dataset)
-  train_dataset = Dataset(train_data_name)
-
-  val_data_name = copy_dataset(val_dataset)
-  val_dataset = Dataset(val_data_name)
+  train_dataset = Dataset(train_dataset, to_rgb = False)
 
   modelpath = os.path.join(models_folder, modelpath)
   if( os.path.exists(modelpath)):
@@ -172,37 +297,114 @@ def train_trinet(feat_model, model, train_dataset, val_dataset, modelpath, train
     model.load_weights(modelpath)
 
   if train_flag:
-    checkpoint = ModelCheckpoint(modelpath, monitor='val_stacked_feats_loss', verbose=1, save_best_only=True, mode='min')
-    lrate = LearningRateScheduler(step_decay)
+    checkpoint = ModelCheckpoint(modelpath, monitor='loss', verbose=1, save_best_only=True, mode='min')
+    if wlr:
+      print('Using warmup lr')
+      lrate = LearningRateScheduler(warmup_lr)
+    else:
+      lrate = LearningRateScheduler(step_decay)
 
-     
-    callbacks_list = [lrate, MyCustomCallback(feat_model, 'curvas', 'triplet', val_dataset), checkpoint]
+    callbacks_list = [lrate, TrainProgress(feat_model, 'curvas', 'triplet', train_dataset, img_size, bn=BN), checkpoint]
 
-    tri_gen = triplet_generator(
-        feat_model,
-        train_dataset, 
-        batch_size = batch_size,
-        img_size = img_size
-      )
 
-    val_tri_gen = triplet_generator(
-        feat_model,
-        val_dataset, 
-        batch_size = batch_size,
-        img_size = img_size,
-        validation = True,
-        val_ident_num = train_dataset.ident_num(),
-        aug = False
-      )
+    if not CenterLoss:
+      tri_gen = general_generator(
+          feat_model, 
+          train_dataset, 
+          batch_size = batch_size, 
+          img_size = img_size,
+          aug = aug,
+          label_smoothing = label_smoothing
+        )
+    else:
+        tri_gen = general_generator_center(
+          feat_model, 
+          train_dataset, 
+          batch_size = batch_size, 
+          img_size = img_size,
+          aug = aug,
+          label_smoothing = label_smoothing
+        )
 
     H = model.fit_generator(
                               tri_gen,
                               steps_per_epoch=int(train_dataset.ident_num()/batch_size), 
                               epochs=epochs,
-                              callbacks=callbacks_list,
-                              validation_data = val_tri_gen,
-                              validation_steps = int(val_dataset.ident_num()/batch_size)
+                              callbacks=callbacks_list
                             )
-    del_temp_dataset(train_data_name)
-    del_temp_dataset(val_data_name)
 
+
+from model.MSML import msml 
+def train_msml(
+  feat_model, 
+  model, 
+  train_dataset, 
+  modelpath,
+  val_dataset = None, 
+  train_flag = True, 
+  aug = True, 
+  models_folder='saved_models', 
+  epochs = 120, 
+  batch_size = 4, 
+  img_size = (224,320), 
+  label_smoothing = False, 
+  wlr = False,
+  BN = False,
+  CenterLoss = False
+  ):
+
+  losses_list = [msml(),'categorical_crossentropy']
+  if CenterLoss:
+    print('Using CenterLoss')
+    losses_list.append(lambda y_true, y_pred: y_pred)
+    losses_list.append(lambda y_true, y_pred: y_pred)
+
+  model.compile(
+    optimizer=standard_optimizer(),
+    loss=losses_list, 
+    )
+
+  train_dataset = Dataset(train_dataset, to_rgb = False)
+
+  modelpath = os.path.join(models_folder, modelpath)
+  if( os.path.exists(modelpath)):
+    print('MSML carregada.')
+    model.load_weights(modelpath)
+
+  if train_flag:
+    checkpoint = ModelCheckpoint(modelpath, monitor='loss', verbose=1, save_best_only=True, mode='min')
+    if wlr:
+      print('Using warmup lr')
+      lrate = LearningRateScheduler(warmup_lr)
+    else:
+      lrate = LearningRateScheduler(step_decay)
+
+     
+    callbacks_list = [lrate, TrainProgress(feat_model, 'curvas', 'MSML', train_dataset, img_size, BN), checkpoint]
+
+    if not CenterLoss:
+      msml_gen = general_generator(
+          feat_model, 
+          train_dataset, 
+          batch_size = batch_size, 
+          img_size = img_size,
+          aug = aug,
+          label_smoothing = label_smoothing
+        )
+    else:
+        msml_gen = general_generator_center(
+          feat_model, 
+          train_dataset, 
+          batch_size = batch_size, 
+          img_size = img_size,
+          aug = aug,
+          label_smoothing = label_smoothing
+        )
+
+    H = model.fit_generator(
+                              msml_gen,
+                              steps_per_epoch=int(train_dataset.ident_num()/batch_size), 
+                              epochs=epochs,
+                              callbacks=callbacks_list,
+                              workers = 1
+                            )
