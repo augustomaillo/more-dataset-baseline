@@ -20,8 +20,8 @@ class MoRe_Dataset():
             train_uids = np.unique(list(f['metadata']['train_idsA'].value))
             test_uids = np.unique(list(f['metadata']['test_idsA'].value))
 
-        self.ident_num['train'] = train_uids
-        self.ident_num['test'] = test_uids
+        self._ident_num['train'] = train_uids
+        self._ident_num['test'] = test_uids
 
         # self._imgs_amount = sum([ len(self._keys[cam]) for cam in self._keys.keys() ])
 
