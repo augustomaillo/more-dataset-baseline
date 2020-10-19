@@ -65,7 +65,7 @@ class Dataset():
     def ident_num(self, partition):
         """Returns the number of uniques ID on dataset
         """  
-        return self._identNum[partition]
+        return len(self._identNum[partition])
 
     def images_amount(self):
         """Returns the number of images on dataset
