@@ -329,7 +329,7 @@ def classification_generator(
 
     all_images_names = np.concatenate([data_camA, data_camB])
     all_ids_list = np.concatenate([idA,idB])
-    ident_num = dataset.ident_num()
+    ident_num = dataset.ident_num('train')
 
     all_train_ids = np.unique(idA)
 
