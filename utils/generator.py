@@ -324,10 +324,9 @@ def classification_generator(
     # with h5py.File(dataset_file, 'r') as f:
     #     all_train_ids = f['metadata']['train_ids'].value.tolist()
 
-    data_camA = dataset.content_array('camA')[0]
-    data_camB = dataset.content_array('camB')[0]
-    idA = dataset.content_array('camA')[1]
-    idB = dataset.content_array('camB')[1]
+    data_camA, idA = dataset.content_array(partition ='train', cam_name ='camA')
+    data_camB, idB = dataset.content_array(partition ='train', cam_name ='camB')
+
     all_images_names = np.concatenate([data_camA, data_camB])
     all_ids_list = np.concatenate([idA,idB])
     ident_num = dataset.ident_num()
