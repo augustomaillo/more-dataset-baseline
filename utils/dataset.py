@@ -43,9 +43,7 @@ class Dataset():
         """  
         cam_name = cam_name[-1]
         with h5py.File(self._h5File, 'r') as f:
-
-            return list(f['metadata/%s_files%s'%(partition, cam_name)].value),
-            f['metadata/%s_ids%s'%(partition, cam_name)].value
+            return (list(f['metadata/%s_files%s'%(partition, cam_name)].value), f['metadata/%s_ids%s'%(partition, cam_name)].value)
 
 
     def get_image(self, img_path):
