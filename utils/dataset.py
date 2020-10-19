@@ -24,13 +24,14 @@ class MoRe_Dataset():
         self._identNum['test'] = test_uids
 
         amount = []
-        for e in f['metadata'].keys():
-            if 'ids' in e:
-                amount.append(len(f['metadata'][e].value))
+        with h5py.File(h5_file, 'r') as f:
+            for e in f['metadata'].keys():
+                if 'ids' in e:
+                    amount.append(len(f['metadata'][e].value))
         self._imgs_amount = sum(amount)
 
 
-    def content_array(self, cam_name):
+    def content_array(self, partition, cam_name):
         """Returns files names and its ident number
 
         Args:
@@ -40,39 +41,33 @@ class MoRe_Dataset():
                 a list with files names
                 a numpy array with its ident number
         """  
-        ids = np.array(self._IDs[cam_name])
-        z = np.arange(len(np.unique(ids)))
-        u = np.unique(ids)
-        np.random.seed(1234)
-        np.random.shuffle(z)
-        o2 = []
-        for i in ids:   
-            o2.append(z[np.where(u==i)[0]])
+        cam_name = cam_name[-1]
+        with h5py.File(self._h5File, 'r') as f:
 
-        o2 = np.array(o2)
-        return self._keys[cam_name], o2 #np.array(self._IDs[cam_name])
+            return list(f['metadata/%s_files%s'%(partition, cam_name)].value),
+            f['metadata/%s_ids%s'%(partition, cam_name)].value
 
-    def get_image(self, filename):
+
+    def get_image(self, img_path):
         """Returns image data
 
         Args:
-                filename: a string specifying image name
+                img_path: a string specifying image path
 
         Returns:
                 a numpy array containing image data
         """  
 
         with h5py.File(self._h5File, 'r') as f:
-            # print(type(f[cam][filename]))
-            if self._rgb:
-                return f[str(filename[:4])][filename].value[:,:,::-1]
+            if self.to_bgr:
+                return f['images'][img_path].value[:,:,::-1]
             else:
-                return f[str(filename[:4])][filename].value
+                return f['images'][img_path].value
 
-    def ident_num(self):
+    def ident_num(self, partition):
         """Returns the number of uniques ID on dataset
         """  
-        return self._identNum
+        return self._identNum[partition]
 
     def images_amount(self):
         """Returns the number of images on dataset
