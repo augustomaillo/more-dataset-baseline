@@ -16,6 +16,7 @@ from multiprocessing.pool import ThreadPool
 from keras.callbacks import Callback
 
 class TrainProgress(tf.keras.callbacks.Callback):
+  """"""
   def __init__(self, feat_model, folder, prefix, dataset, image_shape, bn):
     print('Loading train data on RAM.')
     self._folder = folder
