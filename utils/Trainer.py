@@ -1,7 +1,7 @@
-from utils.dataset import Dataset, BPRDataset, JoiningDatasets
+from utils.dataset import Dataset
 # from utils.generator import classification_generator, triplet_generator, quadruplet_generator
-from utils.NewGenerator import general_generator, general_generator_center, classification_generator
-from utils.test_metrics import generate_cmc_curve, new_generate_cmc_curve
+from utils.generator import general_generator, general_generator_center, classification_generator
+from utils.test_metrics import generate_cmc_curve
 from tensorflow.keras.applications.resnet import preprocess_input
 from keras.callbacks import LearningRateScheduler, ModelCheckpoint
 from keras import Model
@@ -14,9 +14,9 @@ import numpy as np
 from PIL import Image
 from multiprocessing.pool import ThreadPool
 from keras.callbacks import Callback
+from model.Quadruplet import quadruplet_loss
 
 class TrainProgress(tf.keras.callbacks.Callback):
-  """"""
   def __init__(self, feat_model, folder, prefix, dataset, image_shape, bn):
     print('Loading train data on RAM.')
     self._folder = folder
@@ -131,12 +131,11 @@ def del_temp_dataset(dataset):
 def train_classifier(
       feat_model,
       model, 
-      train_dataset, # dataset object
-      val_dataset, 
-      modelpath, 
-      train_flag = True, 
+      dataset,
+      modelpath,  
       models_folder='saved_models', 
-      epochs = 120, batch_size = 32, 
+      epochs = 120, 
+      batch_size = 32, 
       img_size = (224,320), 
       label_smoothing = False,
       wlr = False,
@@ -151,41 +150,39 @@ def train_classifier(
 
   modelpath = os.path.join(models_folder, modelpath)
   if( os.path.exists(modelpath)):
-    print('Classificador carregado.')
+    print('Loading Classifier')
     model.load_weights(modelpath)
 
-  if train_flag:
-    checkpoint = ModelCheckpoint(modelpath, monitor='acc', verbose=1, save_best_only=True, mode='max')
+  checkpoint = ModelCheckpoint(modelpath, monitor='acc', verbose=1, save_best_only=True, mode='max')
 
-    if wlr:
-      print('Using warmup lr')
-      lrate = LearningRateScheduler(warmup_lr)
-    else:
-      lrate = LearningRateScheduler(step_decay)
+  if wlr:
+    print('Using Warmup learning rate.')
+    lrate = LearningRateScheduler(warmup_lr)
+  else:
+    lrate = LearningRateScheduler(step_decay)
 
-    callbacks_list = [lrate, checkpoint, TerminateOnBaseline(monitor='acc', baseline=1.0)]
+  callbacks_list = [lrate, checkpoint, TerminateOnBaseline(monitor='acc', baseline=1.0)]
 
-    cls_gen = classification_generator(
-        train_dataset, 
-        batch_size = batch_size,
-        aug = True,
-        img_size = img_size,
-        label_smoothing = label_smoothing
-      )
-    print('8 workers')
-    H = model.fit_generator(
-                              cls_gen,
-                              steps_per_epoch=int(train_dataset.ident_num()/(batch_size/2)), 
-                              epochs=epochs,
-                              callbacks=callbacks_list,
-                              use_multiprocessing=True,
-                              workers=8
-                            )
+  cls_gen = classification_generator(
+      dataset, 
+      batch_size = batch_size,
+      partition = 'train',
+      aug = True,
+      img_size = img_size,
+      label_smoothing = label_smoothing
+    )
 
-
+  H = model.fit_generator(
+                          cls_gen,
+                          steps_per_epoch = int(train_dataset.ident_num('train')/(batch_size/2)), 
+                          epochs = epochs,
+                          callbacks = callbacks_list,
+                          use_multiprocessing = True,
+                          workers =  8 # need to be adjusted
+                          )
 
 
-from model.Quadruplet import quadruplet_accuracy, quadruplet_loss
+
 
 def train_quadnet(feat_model, 
   model, 
