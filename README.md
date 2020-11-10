@@ -38,13 +38,14 @@ This repository contains all codes used for evaluating ReID task on MoRe Dataset
 <!-- GETTING STARTED -->
 ## Getting Started
 
-  ### Prerequisites
-
-  ### Installation
-  
+Creates a Conda environment from ```environment.yml```.
+```sh
+conda env create -f environment.yml
+```
 
 <!-- USAGE EXAMPLES -->
 ## Usage  
+
 
 <!-- LICENSE -->
 ## License
@@ -53,3 +54,4 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 <!-- CONTACT -->
 ## Contact
+Augusto Maillo - augusto.maillo@gmail.com
