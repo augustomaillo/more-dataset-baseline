@@ -1,0 +1,22 @@
+name: env
+channels:
+- defaults
+- conda-forge
+dependencies:
+- nb_conda_kernels
+- python=3.6
+- pip
+- scipy
+- opencv
+- numpy
+- h5py
+- Pillow
+- matplotlib
+- tensorflow-gpu=1.15.0
+- scikit-learn==0.22.1
+- scikit-image
+- pip:
+  - keras==2.2.4
+  - Pillow
+  - matplotlib
+  - numpy==1.17.5
