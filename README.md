@@ -1,11 +1,10 @@
-# MoRe Dataset - Codes
-
 <!-- PROJECT IMG -->
 <br />
 <p align="center">
   <a href="https://github.com/augustomaillo/MoRe---ReID-Codes">
     <img src="samples.png">
   </a>
+  <h3 align="center">MoRe Dataset - Codes</h3>
 </p>
 
 <!-- TABLE OF CONTENTS -->
@@ -27,4 +26,30 @@ Motorcycles are abundant objects in the transit and often related with traffic a
 
 Moreover, Motorcycle ReID has some remarkable differences when compared to the classical ReID problems as person and vehicle.
 
-To address the above-mentioned issues and boost the research in the motorcycle ReID problem, we propose the \textbf{Mo}torcycle \textbf{Re}-Identification (MoRe) dataset, which is the first large-scale motorcycle ReID database captured by urban traffic cameras.
+To address the above-mentioned issues and boost the research in the motorcycle ReID problem, we propose the *Mo*torcycle *Re*-Identification (MoRe) dataset, which is the first large-scale motorcycle ReID database captured by urban traffic cameras.
+
+This repository contains all codes used for evaluating ReID task on MoRe Dataset. 
+
+### Built With
+* [Keras](https://keras.io/)
+* [TensorFlow](https://www.tensorflow.org/)
+* [Scikit-Learn](https://scikit-learn.org/stable/)
+
+<!-- GETTING STARTED -->
+## Getting Started
+
+  ### Prerequisites
+
+  ### Installation
+  
+
+<!-- USAGE EXAMPLES -->
+## Usage  
+
+<!-- LICENSE -->
+## License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+<!-- CONTACT -->
+## Contact
