@@ -43,6 +43,10 @@ conda env create -f environment.yml
 
 <!-- USAGE EXAMPLES -->
 ## Usage  
+All functions were built to work using MoRe dataset as hdf5 file. So, first create the hdf5 file.
+```sh
+python build_dataset.py -i path-to-more -o MoRe.hdf5
+```
 
 
 <!-- LICENSE -->
