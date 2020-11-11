@@ -10,9 +10,9 @@ import numpy as np
 import os 
 np.random.seed(2301)
 
-models_folder = '/mnt/users/augusto.maillo/slurm-jupyter/saved_models/'
+models_folder = ''
 
-MoRe_path = "/shared/sense/Dados_IC/Motorcycle ReID/MoRe_Final.hdf5"
+MoRe_path = "MoRe.hdf5"
 MoRe = Dataset(MoRe_path, to_bgr = True)
 
 INPUT_SHAPE = (256, 256)

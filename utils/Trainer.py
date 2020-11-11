@@ -1,80 +1,14 @@
 from utils.dataset import Dataset
-# from utils.generator import classification_generator, triplet_generator, quadruplet_generator
 from utils.generator import general_generator, general_generator_center, classification_generator
-from utils.test_metrics import generate_cmc_curve
-from tensorflow.keras.applications.resnet import preprocess_input
 from keras.callbacks import LearningRateScheduler, ModelCheckpoint
 from keras import Model
 from keras import optimizers
 import tensorflow as tf
 import os
-from time import time
-from shutil import copyfile
 import numpy as np 
 from PIL import Image
-from multiprocessing.pool import ThreadPool
 from keras.callbacks import Callback
 from model.Quadruplet import quadruplet_loss
-
-class TrainProgress(tf.keras.callbacks.Callback):
-  def __init__(self, feat_model, folder, prefix, dataset, image_shape, bn):
-    print('Loading train data on RAM.')
-    self._folder = folder
-    self._prefix = prefix
-    self._dataset = dataset
-    self._fm = feat_model
-    self._image_shape = image_shape
-    self._bn = bn
-
-    test_dataA = self._dataset.content_array('camA')[0]
-    test_dataB = self._dataset.content_array('camB')[0]
-    test_identA = self._dataset.content_array('camA')[1]
-    test_identB = self._dataset.content_array('camB')[1]
-    self._camA_set = []
-    self._camB_set = []
-    
-    def process_image(img_name):
-      imgA = dataset.get_image(img_name)
-      imgA = Image.fromarray(imgA)
-      imgA = imgA.resize((image_shape[1], image_shape[0]))
-
-      imgA = np.array(imgA)
-      imgA = preprocess_input(imgA)
-      imgA /= 255
-      return imgA
-
-    processA = ThreadPool(4).map(process_image, test_dataA)
-    for r in processA:
-      self._camA_set.append(r)
-      print(len(self._camA_set),len(test_dataA), end='\r')
-    self._camA_set = np.array(self._camA_set)
-
-    processB = ThreadPool(4).map(process_image, test_dataB)
-    for r in processB:
-      self._camB_set.append(r)
-      print(len(self._camB_set),len(test_dataB), end='\r')
-    self._camB_set = np.array(self._camB_set)
-
-    self.ids_camA = np.array(test_identA)
-    self.ids_camB = np.array(test_identB)
-
-  def on_epoch_end(self, epoch, logs=None):
-    if (epoch+1)%20 ==0:
-      if(not os.path.exists(self._folder)):
-          os.mkdir(self_folder)
-          
-      
-      new_generate_cmc_curve(
-        self._fm,
-        self._camA_set,
-        self._camB_set,
-        self.ids_camA,
-        self.ids_camB,
-        self._dataset, 
-        name = os.path.join(self._folder, self._prefix+'_epoch_%d'%epoch),
-        image_size = self._image_shape,
-        BN = self._bn
-        )
 
 class TerminateOnBaseline(Callback):
     """Callback that terminates training when either acc or val_acc reaches a specified baseline
@@ -118,15 +52,6 @@ def warmup_lr(epoch):
 
 def standard_optimizer():
   return optimizers.Adam(lr=0.00035)
-
-def copy_dataset(dataset):
-  dataset_folder = 'datasets'
-  out_name = os.path.join(dataset_folder, 'temp_%s.hdf5'%str(time())[-4:-1])
-  copyfile(dataset, out_name)
-  return out_name
-
-def del_temp_dataset(dataset):
-  os.remove(dataset)
 
 def train_classifier(
       feat_model,
@@ -302,7 +227,7 @@ def train_trinet(
     else:
       lrate = LearningRateScheduler(step_decay)
 
-    callbacks_list = [lrate, TrainProgress(feat_model, 'curvas', 'triplet', train_dataset, img_size, bn=BN), checkpoint]
+    callbacks_list = [lrate, checkpoint]
 
 
     if not CenterLoss:
@@ -378,7 +303,7 @@ def train_msml(
       lrate = LearningRateScheduler(step_decay)
 
      
-    callbacks_list = [lrate, TrainProgress(feat_model, 'curvas', 'MSML', train_dataset, img_size, BN), checkpoint]
+    callbacks_list = [lrate, checkpoint]
 
     if not CenterLoss:
       msml_gen = general_generator(
