@@ -13,7 +13,7 @@ np.random.seed(2301)
 models_folder = ''
 
 MoRe_path = "MoRe.hdf5"
-MoRe = Dataset(MoRe_path, to_bgr = True)
+MoRe = Dataset(MoRe_path, to_bgr = True) # Images were used in BGR format
 
 INPUT_SHAPE = (256, 256)
 
