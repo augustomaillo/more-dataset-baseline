@@ -56,7 +56,7 @@ def standard_optimizer():
 def train_classifier(
       feat_model,
       model, 
-      dataset,
+      train_dataset,
       modelpath,  
       models_folder='saved_models', 
       epochs = 120, 
@@ -89,7 +89,7 @@ def train_classifier(
   callbacks_list = [lrate, checkpoint, TerminateOnBaseline(monitor='acc', baseline=1.0)]
 
   cls_gen = classification_generator(
-      dataset, 
+      train_dataset, 
       batch_size = batch_size,
       partition = 'train',
       aug = True,
@@ -174,7 +174,7 @@ def train_quadnet(feat_model,
 
     H = model.fit_generator(
                               quad_gen,
-                              steps_per_epoch=int(train_dataset.ident_num()/batch_size), 
+                              steps_per_epoch=int(train_dataset.ident_num('train')/batch_size), 
                               epochs=epochs,
                               callbacks=callbacks_list,
                               use_multiprocessing=True,
@@ -212,7 +212,7 @@ def train_trinet(
     loss=losses_list
     )
 
-  train_dataset = Dataset(train_dataset, to_rgb = False)
+  train_dataset = Dataset(train_dataset, to_bgr = False)
 
   modelpath = os.path.join(models_folder, modelpath)
   if( os.path.exists(modelpath)):
@@ -232,7 +232,7 @@ def train_trinet(
 
     if not CenterLoss:
       tri_gen = general_generator(
-          feat_model, 
+          # feat_model, 
           train_dataset, 
           batch_size = batch_size, 
           img_size = img_size,
@@ -241,7 +241,7 @@ def train_trinet(
         )
     else:
         tri_gen = general_generator_center(
-          feat_model, 
+          # feat_model, 
           train_dataset, 
           batch_size = batch_size, 
           img_size = img_size,
@@ -251,7 +251,7 @@ def train_trinet(
 
     H = model.fit_generator(
                               tri_gen,
-                              steps_per_epoch=int(train_dataset.ident_num()/batch_size), 
+                              steps_per_epoch=int(train_dataset.ident_num('train')/batch_size), 
                               epochs=epochs,
                               callbacks=callbacks_list
                             )
@@ -287,7 +287,7 @@ def train_msml(
     loss=losses_list, 
     )
 
-  train_dataset = Dataset(train_dataset, to_rgb = False)
+  train_dataset = Dataset(train_dataset, to_bgr = False)
 
   modelpath = os.path.join(models_folder, modelpath)
   if( os.path.exists(modelpath)):
@@ -307,7 +307,7 @@ def train_msml(
 
     if not CenterLoss:
       msml_gen = general_generator(
-          feat_model, 
+          # feat_model, 
           train_dataset, 
           batch_size = batch_size, 
           img_size = img_size,
@@ -316,7 +316,7 @@ def train_msml(
         )
     else:
         msml_gen = general_generator_center(
-          feat_model, 
+          # feat_model, 
           train_dataset, 
           batch_size = batch_size, 
           img_size = img_size,
@@ -326,7 +326,7 @@ def train_msml(
 
     H = model.fit_generator(
                               msml_gen,
-                              steps_per_epoch=int(train_dataset.ident_num()/batch_size), 
+                              steps_per_epoch=int(train_dataset.ident_num('train')/batch_size), 
                               epochs=epochs,
                               callbacks=callbacks_list,
                               workers = 1

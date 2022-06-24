@@ -18,27 +18,30 @@ MoRe = Dataset(MoRe_path, to_bgr = True) # Images were used in BGR format
 INPUT_SHAPE = (256, 256)
 
 feat_model = ResNet50_LastStride(input_shape = (INPUT_SHAPE[0], INPUT_SHAPE[1], 3)) # BASELINE STRIDE = 1
-feat_model.load_weights(os.path.join(models_folder,'RESNET50_ORIGINAL_WEIGHTS.h5'), by_name=True)
+
+# you should instantie a Resnet50 keras model and save its weights to 'RESNET50_ORIGINAL_WEIGHTS.h5'
+# feat_model.load_weights(os.path.join(models_folder,'RESNET50_ORIGINAL_WEIGHTS.h5'), by_name=True)
 feat_model._make_predict_function()
 
 identity_model = classification_layer_baseline(MoRe.ident_num('train'), BN = True) # Loading BN
 clsNet  = classification_net(feat_model, identity_model, img_shape = INPUT_SHAPE)
 
-# train_classifier(
-#     feat_model = feat_model,
-#     model = clsNet,
-#     dataset = MoRe,
-#     modelpath =  'tsting_cls.hdf5',
-#     models_folder = models_folder,
-#     epochs = 1,
-#     batch_size = 32, 
-#     img_size = INPUT_SHAPE,
-#     label_smoothing = True,
-#     wlr = True,
-#     BN = True
-# )
+train_classifier(
+    feat_model = feat_model,
+    model = clsNet,
+    train_dataset = MoRe,
+    modelpath =  'tsting_cls.hdf5',
+    models_folder = models_folder,
+    epochs = 1,
+    batch_size = 32, 
+    img_size = INPUT_SHAPE,
+    label_smoothing = True,
+    wlr = True,
+    BN = True
+)
 
-clsNet.load_weights(os.path.join(models_folder, 'tsting_cls.hdf5'))
+# after training cls...
+# clsNet.load_weights(os.path.join(models_folder, 'tsting_cls.hdf5'))
 
 centernet = centernet(MoRe.ident_num('train'), 2048)
 
@@ -47,7 +50,7 @@ gen_model = general_net_center(feat_model, identity_model, centernet, INPUT_SHAP
 train_trinet(
     feat_model = feat_model,
     model = gen_model,
-    dataset = MoRe,
+    train_dataset = "MoRe.hdf5",
     modelpath = 'tsting_ML.hdf5',
     models_folder = models_folder,
     epochs = 1,

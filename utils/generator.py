@@ -297,8 +297,8 @@ def classification_generator(
     all_images_names = np.concatenate([data_camA, data_camB])
     all_ids_list = np.concatenate([idA,idB])
     ident_num = dataset.ident_num(partition)
-
     all_train_ids = np.unique(idA)
+    ids_map = {i : j for j, i in enumerate(all_train_ids)}
 
     np.random.shuffle(all_train_ids)
     pool = cycle(all_train_ids)
@@ -325,7 +325,9 @@ def classification_generator(
         img_data = []
         labels_list = []
         for c_ in current_ids:
-            s = np.random.choice(all_images_names[all_ids_list==c_],2)
+            s = np.random.choice(
+                all_images_names[all_ids_list==c_],
+                2)
             for s_ in s:
                     img_data.append(s_)
                     labels_list.append(c_)
@@ -340,7 +342,7 @@ def classification_generator(
             img = preprocess_input(img)
             img /= 255
             img_batch.append(img)
-            label_ = np.array(np_utils.to_categorical(lb-1,ident_num))
+            label_ = np.array(np_utils.to_categorical(ids_map[lb],ident_num))
             
             ## LABEL SMOOTHING
             if label_smoothing:
