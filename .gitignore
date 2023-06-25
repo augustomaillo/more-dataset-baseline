@@ -58,3 +58,5 @@ more_final_version/
 *.pt 
 *.h5
 *.hdf5
+
+settings.json
