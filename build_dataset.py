@@ -69,7 +69,7 @@ def build_hdf5(dataset_folder, name):
             camA_train.append(int(file.split('/')[2][8:13]))
             camA_files_train.append(file)
         else:
-            camA_train.append(int(file.split('/')[2][8:13]))
+            camB_train.append(int(file.split('/')[2][8:13]))
             camB_files_train.append(file)
     with open(test_file, 'r', encoding='ascii') as pointer:
         files = pointer.readlines()
