@@ -17,8 +17,8 @@ class Dataset():
 
         self._identNum = dict()
         with h5py.File(h5_file, 'r') as f:
-            train_uids = np.unique(list(f['metadata']['train_idsA'].value))
-            test_uids = np.unique(list(f['metadata']['test_idsA'].value))
+            train_uids = np.unique(list(f['metadata']['train_idsA'][()]))
+            test_uids = np.unique(list(f['metadata']['test_idsA'][()]))
 
         self._identNum['train'] = train_uids
         self._identNum['test'] = test_uids
@@ -27,7 +27,7 @@ class Dataset():
         with h5py.File(h5_file, 'r') as f:
             for e in f['metadata'].keys():
                 if 'ids' in e:
-                    amount.append(len(f['metadata'][e].value))
+                    amount.append(len(f['metadata'][e][()]))
         self._imgs_amount = sum(amount)
 
 
@@ -43,7 +43,7 @@ class Dataset():
         """  
         cam_name = cam_name[-1]
         with h5py.File(self._h5File, 'r') as f:
-            return (list(f['metadata/%s_files%s'%(partition, cam_name)].value), np.asarray(f['metadata/%s_ids%s'%(partition, cam_name)].value, np.int))
+            return (list(f['metadata/%s_files%s'%(partition, cam_name)][()]), np.asarray(f['metadata/%s_ids%s'%(partition, cam_name)], np.int))
 
 
     def get_image(self, img_path):
@@ -58,9 +58,9 @@ class Dataset():
 
         with h5py.File(self._h5File, 'r') as f:
             if self.to_bgr:
-                return f['images'][img_path].value[:,:,::-1]
+                return f['images'][img_path][()][:,:,::-1]
             else:
-                return f['images'][img_path].value
+                return f['images'][img_path][()]
 
     def ident_num(self, partition):
         """Returns the number of uniques ID on dataset
