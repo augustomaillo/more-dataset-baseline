@@ -10,8 +10,10 @@ def warmup(current_step: int):
         return 3.5e-4
     elif current_step <= 70:
         return 3.5e-5
-    elif current_step >70:
+    elif current_step <= 120:
         return 3.5e-6
+    else:
+        return 3.5e-7
     
 class WarmupLR(LambdaLR):
     def __init__(self, optimizer: Optimizer):
