@@ -1,7 +1,4 @@
-name: env
-channels:
-- defaults
-- conda-forge
+name: more
 dependencies:
 - nb_conda_kernels
 - python=3.6
