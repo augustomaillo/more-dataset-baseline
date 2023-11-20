@@ -3,7 +3,7 @@ dependencies:
 - nb_conda_kernels
 - python=3.6
 - pip
-- scipy
+- scipy==1.10
 - opencv
 - numpy
 - h5py
