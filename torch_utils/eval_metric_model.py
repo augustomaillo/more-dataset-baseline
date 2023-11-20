@@ -1,5 +1,5 @@
 from utils.dataset import Dataset
-from utils.Evaluator import TestGenerator
+from utils.test_generator import TestGenerator
 from torch_model.metric_learning_model import Resnet50MetricLearning
 
 from torchvision import transforms
@@ -17,7 +17,7 @@ normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                 std=[0.229, 0.224, 0.225],
                                 )
 
-def _process_cam(generator, model, batch_size, workers):
+def process_generator(generator, model, batch_size, workers):
     loader = DataLoader(generator, batch_size=batch_size, shuffle=False, num_workers=workers)
     extracted_features = []
     ids_cam = []
@@ -25,7 +25,7 @@ def _process_cam(generator, model, batch_size, workers):
         with torch.no_grad():
             x = x.to('cuda')
             x = normalize(x)
-            features, outputs = model(x)
+            features, _ = model(x)
         extracted_features.append(features.detach())
         ids_cam.append(y)
     extracted_features = [tensor.cpu().numpy().copy() for tensor in extracted_features]
@@ -34,8 +34,8 @@ def _process_cam(generator, model, batch_size, workers):
     ids_cam = np.array(sum(ids_cam, []))
     return extracted_features, ids_cam
 
-def _cmc_curve(probe_features, ids_camA, gallery_features, ids_camB, output_path):
-    metric = 'euclidean'
+def _cmc_curve(probe_features, ids_camA, gallery_features, ids_camB, output_path, metric='euclidean'):
+    # metric = 'euclidean'
     # if not BN:
     #     probe_features = feat_model.predict(camA_set, verbose=1)
     #     gallery_features = feat_model.predict(camB_set, verbose=1)
@@ -81,10 +81,11 @@ def evaluate(
     device='cpu',
     batch_size=32,
     workers=1,
-    cmc_curve_plot_path:str = None
+    cmc_curve_plot_path:str = None,
+    metric='euclidean'
     ):
     print('Creating model and loading weights...')
-    model_metric = Resnet50MetricLearning(train_target_ids_num).eval().to(device)
+    model_metric = Resnet50MetricLearning(train_target_ids_num, inference=False).eval().to(device)
     incompatible_keys = model_metric.load_state_dict(torch.load(metric_learning_model_weights), strict=False, )
     print('Keys not loaded:', incompatible_keys)
 
@@ -94,11 +95,11 @@ def evaluate(
     if device == 'cuda':
         torch.cuda.empty_cache()
         
-    probe_features, ids_camA = _process_cam(test_gen_camA, model_metric, batch_size=batch_size, workers=workers)
+    probe_features, ids_camA = process_generator(test_gen_camA, model_metric, batch_size=batch_size, workers=workers)
     print(f'Loaded {len(ids_camA)} samples for cam A')
 
-    gallery_features, ids_camB = _process_cam(test_gen_camB, model_metric, batch_size=batch_size, workers=workers)
-    print(f'Loaded {len(ids_camA)} samples for cam B')
+    gallery_features, ids_camB = process_generator(test_gen_camB, model_metric, batch_size=batch_size, workers=workers)
+    print(f'Loaded {len(ids_camB)} samples for cam B')
     
     print('Generating metrics...')
-    _cmc_curve(probe_features, ids_camA, gallery_features, ids_camB, cmc_curve_plot_path)
+    _cmc_curve(probe_features, ids_camA, gallery_features, ids_camB, cmc_curve_plot_path, metric=metric)
