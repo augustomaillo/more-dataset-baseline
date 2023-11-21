@@ -12,6 +12,7 @@ from sklearn.metrics import average_precision_score
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot
+from sklearn.metrics.pairwise import cosine_distances    
     
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                 std=[0.229, 0.224, 0.225],
@@ -48,7 +49,7 @@ def _cmc_curve(probe_features, ids_camA, gallery_features, ids_camB, output_path
 
     cmc_curve = np.zeros(gallery_features.shape[0])
     ap_array = []
-    all_dist = scipy.spatial.distance.cdist(probe_features, gallery_features, metric=metric)
+    all_dist = cosine_distances(probe_features, gallery_features)
     for idx, p_dist in enumerate(all_dist):
         rank_p = np.argsort(p_dist,axis=None)
         ranked_ids = ids_camB[rank_p]

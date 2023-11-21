@@ -13,7 +13,6 @@ class QuadrupletLoss(torch.nn.Module):
         self.margin2 = margin2
 
     def forward(self, anchor, positive, negative1, negative2):
-
         squarred_distance_pos = (anchor - positive).pow(2).sum(1)
         squarred_distance_neg = (anchor - negative1).pow(2).sum(1)
         squarred_distance_neg_b = (negative1 - negative2).pow(2).sum(1)

@@ -33,7 +33,7 @@ def train(
         weights_output = f'weights_{datetime.now()}.pt'
         
     ident_num = dataset.ident_num('train')
-    metric_learning_model = Resnet50MetricLearning(identities_num=ident_num)
+    metric_learning_model = Resnet50MetricLearning(identities_num=ident_num, inference=False)
     if starting_weights is not None:
         print('Loading pre-trained weights')
         non_matched_keys = metric_learning_model.load_state_dict(torch.load(starting_weights))
@@ -73,8 +73,8 @@ def train(
                                     )
     
     ce_loss = nn.CrossEntropyLoss()
-    # quad = QuadrupletLoss(margin1=0.3, margin2=0.3)
-    quad = MyQuadrupletLoss(margin=0.3, device=device)
+    quad = QuadrupletLoss(margin1=0.3, margin2=0.3)
+    # quad = MyQuadrupletLoss(margin=0.3, device=device)
     center = CenterLoss(num_classes=ident_num,feat_dim=2048,use_gpu=True)
     
     optimizer = torch.optim.Adam(list(metric_learning_model.parameters()) + list(center.parameters()), lr=1) # warmup learning rate will multiply this by an factor (the desired learning rate)
@@ -110,20 +110,30 @@ def train(
                 quad_loss = torch.tensor(0) 
                 center_loss = torch.tensor(0)
             else:
-                quad_loss = quad(
-                    camA_features = features[:int(batch_size//2)].squeeze(),
-                    camA_labels = labels[:int(batch_size//2)],
-                    camB_features=features[int(batch_size//2):].squeeze(),
-                    camB_labels = labels[int(batch_size//2):]
-                )
-                center_loss = center(features.squeeze(), labels.squeeze().argmax(dim=1))
+                # quad_loss = quad(
+                #     camA_features = features[:int(batch_size//2)].squeeze(),
+                #     camA_labels = labels[:int(batch_size//2)],
+                #     camB_features=features[int(batch_size//2):].squeeze(),
+                #     camB_labels = labels[int(batch_size//2):]
+                # )
                 
+                quad_loss = quad(
+                    anchor=features[:int(batch_size//2)].squeeze(), # cam A
+                    positive=features[int(batch_size//2):].squeeze(), # cam B
+                    negative1=torch.roll(features[int(batch_size//2):].squeeze(), shifts=1, dims=0), # cam B neg 
+                    negative2=torch.roll(features[:int(batch_size//2)].squeeze(), shifts=2, dims=0), # cam A neg
+                )
+                
+                center_loss = center(features.squeeze(), labels.squeeze().argmax(dim=1))
+             
             total_loss = quad_loss*quad_weight + cls_loss + center_loss*center_weight
 
             # # Backward pass e otimização
             
             torch.cuda.synchronize()
             total_loss.backward()
+            for param in center.parameters():
+                param.grad.data *= 1/ (1+center_weight)
             optimizer.step()
             torch.cuda.synchronize()
             

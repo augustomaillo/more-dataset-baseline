@@ -64,7 +64,7 @@ class MetricLearningGenerator:
         if self.steps > self.max_steps:
             self.steps = 0
             raise StopIteration 
-        return self.get_batch()
+        return self.get_batch_classical_quad()
     
     def __len__(self):
         return self.max_steps
@@ -81,7 +81,7 @@ class MetricLearningGenerator:
         return img
 
     def get_batch_classical_quad(self):
-        n_anchors = self.batch_size//4
+        n_anchors = self.batch_size//2
         
         current_ids = np.random.choice(self.all_train_ids, int(n_anchors),replace=False)
         # first half anchors from cam A
@@ -90,13 +90,14 @@ class MetricLearningGenerator:
         labels_batchA = []
         labels_batchB = []
         for id_ in current_ids:
-            img_file = np.random.choice(self.data_camA[self.idA == id_], 1)[0]
+            img_file = np.random.choice(self.data_camA[self.idA == id_], 1)[0] # anchor
             img_batchA.append(self.process_image(img_file))
             
-            img_file = np.random.choice(self.data_camB[self.idB == id_], 1)[0]
+            img_file = np.random.choice(self.data_camB[self.idB == id_], 1)[0] # positive
             img_batchB.append(self.process_image(img_file))
             
-            label_ = np.array(np.eye(self.ident_num)[self.ids_map[id_]])#(np_utils.to_categorical(ids_map[lb],ident_num))
+            label_ = np.array(np.eye(self.ident_num)[self.ids_map[id_]])
+            
             ## LABEL SMOOTHING
             if self.label_smoothing:
                 epsilon = 0.1
@@ -104,9 +105,9 @@ class MetricLearningGenerator:
                 label_[np.where(label_ == 1)] = 1 - ( (self.ident_num-1)/self.ident_num)*0.1
             ####
             
-            labels_batchA.append(label_)#self.ids_map[id_])
+            labels_batchA.append(label_)
             labels_batchB.append(label_)
-        
+
         img_batch = img_batchA + img_batchB
         labels_batch = labels_batchA + labels_batchB
     
