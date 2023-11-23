@@ -36,17 +36,6 @@ def process_generator(generator, model, batch_size, workers):
     return extracted_features, ids_cam
 
 def _cmc_curve(probe_features, ids_camA, gallery_features, ids_camB, output_path, metric='euclidean'):
-    # metric = 'euclidean'
-    # if not BN:
-    #     probe_features = feat_model.predict(camA_set, verbose=1)
-    #     gallery_features = feat_model.predict(camB_set, verbose=1)
-    # else:
-    #     print('BN active for inference. Metric for inference changed to cosine.')
-    #     bnneck = BNNeckForInference(feat_model, image_size)
-    #     probe_features = bnneck.predict(camA_set, verbose=1)
-    #     gallery_features = bnneck.predict(camB_set, verbose=1)
-    #     metric = 'cosine'
-
     cmc_curve = np.zeros(gallery_features.shape[0])
     ap_array = []
     all_dist = cosine_distances(probe_features, gallery_features)

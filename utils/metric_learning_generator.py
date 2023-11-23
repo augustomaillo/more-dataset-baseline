@@ -64,7 +64,7 @@ class MetricLearningGenerator:
         if self.steps > self.max_steps:
             self.steps = 0
             raise StopIteration 
-        return self.get_batch_classical_quad()
+        return self.get_batch()
     
     def __len__(self):
         return self.max_steps
@@ -80,7 +80,7 @@ class MetricLearningGenerator:
         img = np.array(img)/255
         return img
 
-    def get_batch_classical_quad(self):
+    def get_batch(self):
         n_anchors = self.batch_size//2
         
         current_ids = np.random.choice(self.all_train_ids, int(n_anchors),replace=False)
@@ -113,7 +113,7 @@ class MetricLearningGenerator:
     
         return np.moveaxis(np.array(img_batch, dtype=np.float32), -1, 1) , np.array(labels_batch, dtype=np.float32)
 
-    def get_batch(self):
+    def get_batch_my_quad_loss(self):
         img_batchA = []
         img_batchB = []
         labels_batchA = []
