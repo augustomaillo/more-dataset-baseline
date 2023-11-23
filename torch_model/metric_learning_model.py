@@ -29,7 +29,7 @@ class Resnet50MetricLearning(nn.Module):
         features = self.features(x)
         features_norm = self.batch_norm(features)
         output = self.fc(features_norm.view(features_norm.size(0), -1))
-        if self.inference:
+        if not self.inference:
             return features, output
         else:
             return features_norm, output
