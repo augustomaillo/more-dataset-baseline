@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-class CenterLoss(nn.Module):
+class CenterLoss_(nn.Module):
     """Center loss.
     
     Reference:
@@ -41,5 +41,24 @@ class CenterLoss(nn.Module):
 
         dist = distmat * mask.float()
         loss = dist.clamp(min=1e-12, max=1e+12).sum() / batch_size
+
+        return loss
+    
+    
+class CenterLoss(nn.Module):
+    def __init__(self, num_classes=10, feat_dim=2, use_gpu=True):
+        super(CenterLoss, self).__init__()
+        self.num_class = num_classes
+        self.num_feature = feat_dim
+        
+        if use_gpu:
+            self.centers = nn.Parameter(torch.randn(self.num_class, self.num_feature)).cuda()
+        else:
+            self.centers = nn.Parameter(torch.randn(self.num_class, self.num_feature))
+
+    def forward(self, x, labels):
+        center = self.centers[labels]
+        dist = (x-center).pow(2).sum(dim=-1)
+        loss = torch.clamp(dist, min=1e-12, max=1e+12).mean(dim=-1)
 
         return loss
